@@ -1,0 +1,855 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Executive Assistant</title>
+    <script src="https://cdn.jsdelivr.net/npm/livekit-client/dist/livekit-client.umd.min.js"></script>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      html, body {
+        height: 100%;
+        overflow: hidden;
+      }
+
+      body {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        background: linear-gradient(135deg, #0f0f0f 0%, #1a1a1a 100%);
+        color: #e0e0e0;
+      }
+
+      .container {
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .header {
+        background: rgba(255, 255, 255, 0.03);
+        backdrop-filter: blur(10px);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        padding: 20px 32px;
+      }
+
+      .header h1 {
+        font-size: 20px;
+        font-weight: 600;
+        color: #ffffff;
+        letter-spacing: -0.5px;
+      }
+
+      .header p {
+        font-size: 13px;
+        color: #888;
+        margin-top: 2px;
+      }
+
+      .content {
+        flex: 1;
+        display: flex;
+        gap: 24px;
+        padding: 24px;
+        overflow: hidden;
+      }
+
+      .main-panel {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+      }
+
+      .video-container {
+        position: relative;
+        background: #000;
+        border-radius: 12px;
+        overflow: hidden;
+        flex: 1;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+      }
+
+      #mediaElement {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+      }
+
+      .status-badge {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        background: rgba(0, 0, 0, 0.8);
+        backdrop-filter: blur(10px);
+        color: white;
+        padding: 10px 16px;
+        border-radius: 8px;
+        font-size: 13px;
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      .status-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #ef4444;
+      }
+
+      .status-dot.active {
+        background: #10b981;
+        box-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
+      }
+
+      .status-dot.listening {
+        background: #f59e0b;
+        animation: pulse 2s infinite;
+      }
+
+      @keyframes pulse {
+        0%, 100% { opacity: 1; box-shadow: 0 0 10px rgba(245, 158, 11, 0.5); }
+        50% { opacity: 0.5; box-shadow: 0 0 20px rgba(245, 158, 11, 0.8); }
+      }
+
+      .controls {
+        display: flex;
+        gap: 12px;
+      }
+
+      button {
+        padding: 14px 28px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        background: rgba(255, 255, 255, 0.05);
+        color: #e0e0e0;
+      }
+
+      button:hover:not(:disabled) {
+        background: rgba(255, 255, 255, 0.08);
+        border-color: rgba(255, 255, 255, 0.2);
+        transform: translateY(-1px);
+      }
+
+      button:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+        transform: none;
+      }
+
+      #startBtn {
+        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+        color: white;
+        border-color: transparent;
+        flex: 1;
+      }
+
+      #startBtn:hover:not(:disabled) {
+        background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+      }
+
+      #closeBtn {
+        background: rgba(239, 68, 68, 0.1);
+        color: #ef4444;
+        border-color: rgba(239, 68, 68, 0.2);
+        flex: 1;
+      }
+
+      #closeBtn:hover:not(:disabled) {
+        background: rgba(239, 68, 68, 0.2);
+        border-color: rgba(239, 68, 68, 0.3);
+      }
+
+      .sidebar {
+        width: 380px;
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+      }
+
+      .config-section {
+        background: rgba(255, 255, 255, 0.03);
+        backdrop-filter: blur(10px);
+        padding: 28px;
+        border-radius: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+      }
+
+      .config-section h3 {
+        font-size: 11px;
+        font-weight: 600;
+        color: #888;
+        margin-bottom: 20px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+      }
+
+      .form-group {
+        margin-bottom: 20px;
+      }
+
+      .form-group:last-child {
+        margin-bottom: 0;
+      }
+
+      .form-group label {
+        display: block;
+        font-size: 13px;
+        color: #999;
+        margin-bottom: 10px;
+        font-weight: 500;
+      }
+
+      .config-section input,
+      .config-section select {
+        width: 100%;
+        padding: 14px 16px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 10px;
+        font-size: 14px;
+        background: rgba(255, 255, 255, 0.05);
+        color: #e0e0e0;
+        font-family: inherit;
+        transition: all 0.2s;
+      }
+
+      .config-section input:focus,
+      .config-section select:focus {
+        outline: none;
+        border-color: #3b82f6;
+        background: rgba(255, 255, 255, 0.08);
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+      }
+
+      .config-section input::placeholder {
+        color: #555;
+      }
+
+      .config-section select option {
+        background: #1a1a1a;
+        color: #e0e0e0;
+      }
+
+      .avatar-preview {
+        margin-top: 20px;
+        text-align: center;
+        border-radius: 10px;
+        overflow: hidden;
+        background: rgba(0, 0, 0, 0.3);
+        padding: 16px;
+      }
+
+      .avatar-preview img {
+        max-width: 100%;
+        border-radius: 8px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+      }
+
+      .avatar-preview.hidden {
+        display: none;
+      }
+
+      @media (max-width: 1200px) {
+        .content {
+          flex-direction: column;
+        }
+
+        .sidebar {
+          width: 100%;
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1>AI Assistant</h1>
+        <p>Interactive Voice & Video Agent</p>
+      </div>
+
+      <div class="content">
+        <div class="main-panel">
+          <div class="video-container">
+            <video id="mediaElement" autoplay playsinline></video>
+            <div class="status-badge">
+              <div class="status-dot" id="statusDot"></div>
+              <span id="statusText">Offline</span>
+            </div>
+          </div>
+
+          <div class="controls">
+            <button id="startBtn">Start Session</button>
+            <button id="closeBtn">End Session</button>
+          </div>
+        </div>
+
+        <div class="sidebar">
+          <div class="config-section">
+            <h3>Setup</h3>
+            <div class="form-group">
+              <label for="apiKeyInput">API Key</label>
+              <input id="apiKeyInput" type="password" placeholder="Enter your HeyGen API Key" />
+            </div>
+            <div class="form-group">
+              <label for="avatarSelect">Avatar</label>
+              <select id="avatarSelect">
+                <option value="">Loading avatars...</option>
+              </select>
+            </div>
+            <div class="avatar-preview" id="avatarPreview"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // Configuration
+      const API_CONFIG = {
+        apiKey: "",
+        serverUrl: "https://api.heygen.com",
+      };
+
+      // Global variables
+      let sessionInfo = null;
+      let room = null;
+      let webSocket = null;
+      let sessionToken = null;
+      let recognition = null;
+      let isListening = false;
+
+      // DOM Elements
+      const statusDot = document.getElementById("statusDot");
+      const statusText = document.getElementById("statusText");
+      const mediaElement = document.getElementById("mediaElement");
+      const avatarSelect = document.getElementById("avatarSelect");
+      const avatarPreview = document.getElementById("avatarPreview");
+      const apiKeyInput = document.getElementById("apiKeyInput");
+      const startBtn = document.getElementById("startBtn");
+      const closeBtn = document.getElementById("closeBtn");
+
+      // Hardcoded avatars data
+      const avatarsData = [
+        {
+          avatar_id: "Judy_Doctor_Sitting2_public",
+          default_voice: "7ffb69e578d4492587493c26ebcabc31",
+          normal_preview: "https://files2.heygen.ai/avatar/v3/022cdb1f07914e75887c693f0c5f97dd_45650/preview_talk_1.webp",
+          pose_name: "Judy Doctor Sitting"
+        },
+        {
+          avatar_id: "Judy_Lawyer_Sitting2_public",
+          default_voice: "7ffb69e578d4492587493c26ebcabc31",
+          normal_preview: "https://files2.heygen.ai/avatar/v3/a7c86cb77b3144948bf8020f6e734bbf_45640/preview_talk_1.webp",
+          pose_name: "Judy Lawyer"
+        },
+        {
+          avatar_id: "Judy_Teacher_Standing_public",
+          default_voice: "7ffb69e578d4492587493c26ebcabc31",
+          normal_preview: "https://files2.heygen.ai/avatar/v3/6cd7031aa97e496897391dd44dae56be_45630/preview_talk_1.webp",
+          pose_name: "Judy Teacher Standing"
+        },
+        {
+          avatar_id: "Judy_Teacher_Sitting2_public",
+          default_voice: "7ffb69e578d4492587493c26ebcabc31",
+          normal_preview: "https://files2.heygen.ai/avatar/v3/f94ae3e89f4c4ff98541ab59efa5878b_45630/preview_talk_2.webp",
+          pose_name: "Judy Teacher Sitting"
+        },
+        {
+          avatar_id: "Judy_Teacher_Sitting_public",
+          default_voice: "7ffb69e578d4492587493c26ebcabc31",
+          normal_preview: "https://files2.heygen.ai/avatar/v3/68fbd9f64a4948baa3c295d35f49b61c_45630/preview_target.webp",
+          pose_name: "Judy HR"
+        },
+        {
+          avatar_id: "June_HR_public",
+          default_voice: "68dedac41a9f46a6a4271a95c733823c",
+          normal_preview: "https://files2.heygen.ai/avatar/v3/74447a27859a456c955e01f21ef18216_45620/preview_talk_1.webp",
+          pose_name: "June HR"
+        },
+        {
+          avatar_id: "Silas_CustomerSupport_public",
+          default_voice: "5c837919d188407cac1ea65a8889e496",
+          normal_preview: "https://files2.heygen.ai/avatar/v3/a1ed8c71e4bf4e6cb9071d2b7cd71e4e_45660/preview_talk_1.webp",
+          pose_name: "Silas Customer Support"
+        },
+        {
+          avatar_id: "SilasHR_public",
+          default_voice: "5c837919d188407cac1ea65a8889e496",
+          normal_preview: "https://files2.heygen.ai/avatar/v3/582ee8fe072a48fda3bc68241aeff660_45660/preview_target.webp",
+          pose_name: "Silas HR"
+        },
+        {
+          avatar_id: "Wayne_20240711",
+          default_voice: "2411aaf820874397a44530f94032bfdc",
+          normal_preview: "https://files2.heygen.ai/avatar/v3/a3fdb0c652024f79984aaec11ebf2694_34350/preview_target.webp",
+          pose_name: "Wayne"
+        }
+      ];
+
+      // Load avatars list
+      function loadAvatars() {
+        // Populate dropdown
+        avatarSelect.innerHTML = '<option value="">Select an avatar</option>';
+        avatarsData.forEach(avatar => {
+          const option = document.createElement("option");
+          option.value = avatar.avatar_id;
+          option.textContent = avatar.pose_name;
+          option.dataset.preview = avatar.normal_preview;
+          option.dataset.voice = avatar.default_voice;
+          avatarSelect.appendChild(option);
+        });
+
+        // Set default to Wayne
+        avatarSelect.value = "Wayne_20240711";
+        const wayne = avatarsData.find(a => a.avatar_id === "Wayne_20240711");
+        updateAvatarPreview(wayne);
+
+        updateStatus(`Loaded ${avatarsData.length} avatars`);
+      }
+
+      // Update avatar preview
+      function updateAvatarPreview(avatar) {
+        if (avatar && avatar.normal_preview) {
+          avatarPreview.innerHTML = `<img src="${avatar.normal_preview}" alt="${avatar.pose_name || avatar.avatar_id}">`;
+        } else {
+          avatarPreview.innerHTML = "";
+        }
+      }
+
+      // Update status - logs to console instead
+      function updateStatus(message) {
+        const timestamp = new Date().toLocaleTimeString();
+        console.log(`[${timestamp}] ${message}`);
+      }
+
+      function setConnectionStatus(status) {
+        statusDot.className = "status-dot";
+        if (status === "connected") {
+          statusDot.classList.add("active");
+          statusText.textContent = "Connected";
+        } else if (status === "listening") {
+          statusDot.classList.add("listening");
+          statusText.textContent = "Listening";
+        } else {
+          statusText.textContent = "Offline";
+        }
+      }
+
+      // Get session token
+      async function getSessionToken() {
+        try {
+          const apiKey = apiKeyInput.value.trim() || API_CONFIG.apiKey;
+          if (!apiKey) {
+            throw new Error("API Key is required");
+          }
+
+          const response = await fetch(
+            `${API_CONFIG.serverUrl}/v1/streaming.create_token`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "X-Api-Key": apiKey,
+              },
+            }
+          );
+
+          const data = await response.json();
+          sessionToken = data.data.token;
+          updateStatus("Session token obtained");
+        } catch (error) {
+          updateStatus("Failed to get session token: " + error.message);
+          throw error;
+        }
+      }
+
+      // Connect WebSocket
+      async function connectWebSocket(sessionId) {
+        const params = new URLSearchParams({
+          session_id: sessionId,
+          session_token: sessionToken,
+          silence_response: false,
+          opening_text: "Good day! I'm your dedicated business assistant at TechVenture Solutions. I'm here to help you with meeting schedules, project updates, financial reports, and any business inquiries you might have. How may I assist you today?",
+          stt_language: "en",
+        });
+
+        const wsUrl = `wss://${
+          new URL(API_CONFIG.serverUrl).hostname
+        }/v1/ws/streaming.chat?${params}`;
+
+        webSocket = new WebSocket(wsUrl);
+
+        webSocket.addEventListener("open", () => {
+          updateStatus("WebSocket connected");
+        });
+
+        webSocket.addEventListener("message", (event) => {
+          const eventData = JSON.parse(event.data);
+          console.log("WebSocket event:", eventData);
+        });
+
+        webSocket.addEventListener("error", () => {
+          updateStatus("WebSocket error occurred");
+        });
+      }
+
+      // Create new session
+      async function createNewSession() {
+        try {
+          if (!sessionToken) {
+            await getSessionToken();
+          }
+
+          // Get default voice from selected avatar
+          const selectedAvatar = avatarsData.find(a => a.avatar_id === avatarSelect.value);
+          const voiceConfig = selectedAvatar && selectedAvatar.default_voice
+            ? {
+                voice: {
+                  voice_id: selectedAvatar.default_voice,
+                  rate: 1.0,
+                },
+              }
+            : {};
+
+          const response = await fetch(
+            `${API_CONFIG.serverUrl}/v1/streaming.new`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${sessionToken}`,
+              },
+              body: JSON.stringify({
+                quality: "high",
+                avatar_name: avatarSelect.value,
+                ...voiceConfig,
+                version: "v2",
+                video_encoding: "H264",
+                knowledge_base: `You are Sarah, a professional business assistant at TechVenture Solutions, a technology and business consulting firm.
+
+COMPANY INFORMATION:
+- Company: TechVenture Solutions
+- Industry: Technology & Business Consulting
+- Founded: 2018
+- Employees: 250+
+- Annual Revenue: $45M (2024)
+- Headquarters: San Francisco, CA
+- CEO: Michael Chen
+
+KEY SERVICES:
+- Digital Transformation Consulting
+- Cloud Infrastructure Solutions
+- AI/ML Implementation
+- Cybersecurity Services
+- Business Process Automation
+
+CURRENT PROJECTS:
+1. CloudMigrate Pro - 80% complete, $2.5M budget, Due: March 2025
+2. AI Analytics Dashboard - 45% complete, $1.8M budget, Due: June 2025
+3. Security Audit 2024 - 95% complete, $500K budget, Due: January 2025
+
+UPCOMING MEETINGS:
+- Board Meeting: Monday 10:00 AM with CEO Michael Chen
+- Q4 Strategy Review: Wednesday 2:00 PM with Department Heads
+- Client Presentation: Friday 3:00 PM with Acme Corporation
+
+FINANCIAL METRICS (Q4 2024):
+- Revenue: $12.3M (↑15% YoY)
+- Operating Margin: 28%
+- Client Retention Rate: 94%
+- Growth Rate: 22% annually
+
+TOP CLIENTS:
+- Acme Corporation: $5M annual contract
+- GlobalTech Industries: $3.2M annual contract
+- InnovateCo: $2.8M annual contract
+
+YOUR ROLE:
+As Sarah, you assist with:
+- Meeting scheduling and calendar management
+- Project status updates and tracking
+- Financial reports and business metrics
+- Client communication and updates
+- General business inquiries
+
+RESPONSE STYLE:
+- Professional yet approachable
+- Concise and clear
+- Provide specific data when available
+- Offer to help with related tasks
+- Use natural, conversational language
+
+Always be helpful, accurate, and maintain a professional demeanor while being friendly and accessible.`,
+                disable_idle_timeout: false,
+                activity_idle_timeout: 300
+              }),
+            }
+          );
+
+          const data = await response.json();
+          sessionInfo = data.data;
+
+          // Create LiveKit Room
+          room = new LivekitClient.Room({
+            adaptiveStream: true,
+            dynacast: true,
+            videoCaptureDefaults: {
+              resolution: LivekitClient.VideoPresets.h720.resolution,
+            },
+          });
+
+          // Handle room events
+          room.on(LivekitClient.RoomEvent.DataReceived, (message) => {
+            const data = new TextDecoder().decode(message);
+            console.log("Room message:", JSON.parse(data));
+          });
+
+          // Handle media streams - use LiveKit's attach method
+          room.on(LivekitClient.RoomEvent.TrackSubscribed, (track) => {
+            if (track.kind === "video" || track.kind === "audio") {
+              // Use LiveKit's built-in attach method - attaches to existing element
+              track.attach(mediaElement);
+              updateStatus(`${track.kind} track attached`);
+              setConnectionStatus("connected");
+            }
+          });
+
+          room.on(LivekitClient.RoomEvent.TrackUnsubscribed, (track) => {
+            const mediaTrack = track.mediaStreamTrack;
+            if (mediaTrack) {
+              mediaStream.removeTrack(mediaTrack);
+            }
+          });
+
+          room.on(LivekitClient.RoomEvent.Disconnected, (reason) => {
+            updateStatus("Room disconnected: " + reason);
+            setConnectionStatus("offline");
+          });
+
+          await room.prepareConnection(
+            sessionInfo.url,
+            sessionInfo.access_token
+          );
+          updateStatus("Connection prepared");
+
+          await connectWebSocket(sessionInfo.session_id);
+          updateStatus("Session created successfully");
+        } catch (error) {
+          updateStatus("Failed to create session: " + error.message);
+          throw error;
+        }
+      }
+
+      // Start streaming session
+      async function startStreamingSession() {
+        try {
+          await fetch(`${API_CONFIG.serverUrl}/v1/streaming.start`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${sessionToken}`,
+            },
+            body: JSON.stringify({
+              session_id: sessionInfo.session_id,
+            }),
+          });
+
+          // Connect to LiveKit room AFTER starting streaming
+          await room.connect(sessionInfo.url, sessionInfo.access_token);
+          updateStatus("Connected to room");
+
+          startBtn.disabled = true;
+          closeBtn.disabled = false;
+          updateStatus("Streaming started successfully");
+        } catch (error) {
+          updateStatus("Failed to start streaming: " + error.message);
+          throw error;
+        }
+      }
+
+      // Send text to avatar
+      async function sendText(text) {
+        if (!sessionInfo) {
+          updateStatus("No active session");
+          return;
+        }
+
+        try {
+          await fetch(`${API_CONFIG.serverUrl}/v1/streaming.task`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${sessionToken}`,
+            },
+            body: JSON.stringify({
+              session_id: sessionInfo.session_id,
+              text: text,
+              task_type: "talk",
+            }),
+          });
+
+          updateStatus(`Sent: ${text}`);
+        } catch (error) {
+          updateStatus("Failed to send text: " + error.message);
+        }
+      }
+
+      // Close session
+      async function closeSession() {
+        if (!sessionInfo) {
+          updateStatus("No active session");
+          return;
+        }
+
+        try {
+          // Stop speech recognition
+          if (recognition) {
+            recognition.abort();
+            recognition = null;
+            isListening = false;
+          }
+
+          await fetch(`${API_CONFIG.serverUrl}/v1/streaming.stop`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${sessionToken}`,
+            },
+            body: JSON.stringify({
+              session_id: sessionInfo.session_id,
+            }),
+          });
+
+          if (webSocket) {
+            webSocket.close();
+          }
+
+          if (room) {
+            room.disconnect();
+          }
+
+          mediaElement.srcObject = null;
+          sessionInfo = null;
+          room = null;
+          sessionToken = null;
+
+          startBtn.disabled = false;
+          closeBtn.disabled = true;
+
+          // Show avatar preview again when session ends
+          avatarPreview.classList.remove("hidden");
+
+          setConnectionStatus("offline");
+          updateStatus("Session closed");
+        } catch (error) {
+          updateStatus("Failed to close session: " + error.message);
+        }
+      }
+
+      // Initialize continuous speech recognition
+      function initSpeechRecognition() {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SpeechRecognition) {
+          updateStatus("Speech recognition not supported in this browser");
+          return;
+        }
+
+        recognition = new SpeechRecognition();
+        recognition.continuous = true; // Keep listening
+        recognition.interimResults = false;
+        recognition.lang = 'en-US';
+
+        recognition.onstart = () => {
+          isListening = true;
+          setConnectionStatus("listening");
+          updateStatus("Microphone active - always listening");
+        };
+
+        recognition.onresult = (event) => {
+          const lastResult = event.results[event.results.length - 1];
+          if (lastResult.isFinal) {
+            const transcript = lastResult[0].transcript.trim();
+            updateStatus(`You: "${transcript}"`);
+            sendText(transcript);
+          }
+        };
+
+        recognition.onerror = (event) => {
+          if (event.error === 'no-speech') {
+            // Ignore no-speech errors, just keep listening
+            return;
+          }
+          updateStatus("Speech error: " + event.error);
+        };
+
+        recognition.onend = () => {
+          // Auto-restart if session is still active
+          if (sessionInfo && isListening) {
+            recognition.start();
+          } else {
+            isListening = false;
+            setConnectionStatus("connected");
+          }
+        };
+
+        // Start listening
+        recognition.start();
+      }
+
+      // Event Listeners
+      avatarSelect.addEventListener("change", (e) => {
+        const selectedAvatar = avatarsData.find(a => a.avatar_id === e.target.value);
+        if (selectedAvatar) {
+          updateAvatarPreview(selectedAvatar);
+          updateStatus(`Selected avatar: ${selectedAvatar.pose_name || selectedAvatar.avatar_id}`);
+        }
+      });
+
+      startBtn.addEventListener("click", async () => {
+        if (!apiKeyInput.value.trim()) {
+          updateStatus("Please enter your API key first");
+          return;
+        }
+        if (!avatarSelect.value) {
+          updateStatus("Please select an avatar first");
+          return;
+        }
+        startBtn.disabled = true;
+
+        // Hide avatar preview when starting session
+        avatarPreview.classList.add("hidden");
+
+        updateStatus("Starting session...");
+        try {
+          await createNewSession();
+          await startStreamingSession();
+          initSpeechRecognition();
+        } catch (error) {
+          startBtn.disabled = false;
+          avatarPreview.classList.remove("hidden");
+        }
+      });
+
+      closeBtn.addEventListener("click", closeSession);
+
+      // Initial state
+      closeBtn.disabled = true;
+
+      updateStatus("Application initialized");
+      updateStatus("Loading avatars...");
+      loadAvatars();
+    </script>
+  </body>
+</html>
