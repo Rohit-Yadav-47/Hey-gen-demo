@@ -1,5 +1,7 @@
 # HeyGen AI Assistant Demo
 
+https://rohit-yadav-47.github.io/Hey-gen-demo/
+
 Interactive voice and video AI assistant built with HeyGen's Streaming API and LiveKit.
 
 ## Features
